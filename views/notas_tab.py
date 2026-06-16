@@ -7,7 +7,8 @@ from kivymd.uix.button import MDButton, MDButtonText
 from kivymd.uix.label import MDLabel
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.list import MDListItem
-from kivymd.uix.scrollview import MDScrollView # NUEVO: Para poder hacer scroll
+from kivymd.uix.scrollview import MDScrollView
+from kivymd.uix.gridlayout import MDGridLayout
 
 from controllers.estudiante_controller import EstudianteController
 from controllers.materia_controller import MateriaController
@@ -84,11 +85,11 @@ class NotasTab(MDScrollView):
             adaptive_height=True
         )
         
-        layout_notas = MDBoxLayout(
-            orientation='horizontal',
-            spacing=dp(10),
-            size_hint_y=None,
-            height=dp(60) # Altura fija solo para los inputs
+        # CAMBIO: Usamos MDGridLayout para organizar en 2 columnas y que no se aplaste
+        layout_notas = MDGridLayout(
+            cols=2,
+            spacing=dp(15),
+            adaptive_height=True
         )
         
         self.campo_nota1 = MDTextField(MDTextFieldHintText(text="N1 (0-20)"), mode="outlined", input_filter="float")

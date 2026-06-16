@@ -10,6 +10,7 @@ from kivymd.uix.label import MDLabel
 from kivymd.uix.list import MDList, MDListItem, MDListItemHeadlineText, MDListItemSupportingText
 from kivymd.uix.scrollview import MDScrollView
 from kivymd.uix.dialog import MDDialog, MDDialogHeadlineText, MDDialogContentContainer, MDDialogButtonContainer
+from kivy.metrics import dp
 
 from controllers.estudiante_controller import EstudianteController
 
@@ -52,9 +53,9 @@ class EstudiantesTab(MDBoxLayout):
         
         barra_superior = MDBoxLayout(
             orientation='horizontal',
-            spacing=10,
-            size_hint_y=None,
-            height=60
+            spacing=dp(10),
+            adaptive_height=True,  # <- Dejamos que calcule su propia altura
+            padding=[0, dp(15), 0, dp(15)]  # Le damos un poco de aire arriba y abajo
         )
         
         # Campo de búsqueda
@@ -147,16 +148,12 @@ class EstudiantesTab(MDBoxLayout):
     def abrir_dialogo_agregar(self, instance):
         """Abre un diálogo para agregar un nuevo estudiante"""
         
-        # ============================================
-        # 5.1. CONTENIDO DEL DIÁLOGO
-        # ============================================
-        
+        # 1. Usamos adaptive_height en lugar de height fijo
         layout_dialogo = MDBoxLayout(
             orientation='vertical',
-            spacing=10,
-            padding=10,
-            size_hint_y=None,
-            height=400
+            spacing=dp(15),
+            padding=dp(10),
+            adaptive_height=True  # <- CAMBIO CLAVE
         )
         
         self.campo_cedula = MDTextField(
@@ -196,9 +193,12 @@ class EstudiantesTab(MDBoxLayout):
         # 5.2. DIÁLOGO
         # ============================================
         
+        scroll = MDScrollView(size_hint_y=None, height=dp(350))
+        scroll.add_widget(layout_dialogo)
+
         self.dialog_agregar = MDDialog(
             MDDialogHeadlineText(text="Agregar Estudiante"),
-            MDDialogContentContainer(layout_dialogo),
+            MDDialogContentContainer(scroll),  # <- CAMBIO CLAVE
             MDDialogButtonContainer(
                 MDButton(
                     MDButtonText(text="Cancelar"), 

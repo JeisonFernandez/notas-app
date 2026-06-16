@@ -10,6 +10,7 @@ from kivymd.uix.label import MDLabel
 from kivymd.uix.list import MDList, MDListItem, MDListItemHeadlineText, MDListItemSupportingText
 from kivymd.uix.scrollview import MDScrollView
 from kivymd.uix.dialog import MDDialog, MDDialogHeadlineText, MDDialogContentContainer, MDDialogButtonContainer
+from kivy.metrics import dp
 
 from controllers.materia_controller import MateriaController
 
@@ -53,9 +54,9 @@ class MateriasTab(MDBoxLayout):
         
         barra_superior = MDBoxLayout(
             orientation='horizontal',
-            spacing=10,
-            size_hint_y=None,
-            height=50
+            spacing=dp(10),
+            adaptive_height=True,  # <- Que se adapte solo
+            padding=[0, dp(15), 0, dp(15)]
         )
         
         titulo = MDLabel(
