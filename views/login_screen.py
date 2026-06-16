@@ -1,10 +1,11 @@
 from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
-from kivymd.uix.button import MDRaisedButton
-from kivymd.uix.textfield import MDTextField
+from kivymd.uix.button import MDButton, MDButtonText
+from kivymd.uix.textfield import MDTextField, MDTextFieldLeadingIcon, MDTextFieldHintText
 from kivymd.uix.label import MDLabel
 from kivymd.uix.card import MDCard
 from kivymd.uix.boxlayout import MDBoxLayout
+from kivy.metrics import dp
 
 from controllers.auth_controller import AuthController
 
@@ -21,56 +22,56 @@ class LoginScreen(MDScreen):
         self.build_ui()
     
     def build_ui(self):
-        """Construye la interfaz de login"""
-        
-        # Layout principal (vertical)
+        # Layout principal responsivo
         layout_principal = MDBoxLayout(
             orientation='vertical',
-            spacing=20,
-            padding=30,
+            spacing=dp(20),
+            padding=dp(30),
             pos_hint={'center_x': 0.5, 'center_y': 0.5},
-            size_hint=(0.8, 0.7)
+            size_hint=(0.9, None),      # 90% del ancho en móviles
+            size_hint_max_x=dp(400),    # En PC nunca pasará de 400px de ancho
+            adaptive_height=True        # La altura se ajusta sola
         )
         
         # Tarjeta contenedora
         tarjeta = MDCard(
             orientation='vertical',
-            padding=20,
-            spacing=15,
-            size_hint=(1, 1),
+            padding=dp(30),
+            spacing=dp(20),
             elevation=4,
-            radius=[10, 10, 10, 10]
+            radius=[10, 10, 10, 10],
+            adaptive_height=True        # Crece según el contenido
         )
         
         # Título
         titulo = MDLabel(
             text='Control de Notas',
             halign='center',
-            font_style='H4',
-            size_hint_y=0.2
+            font_style='Headline',
+            role='small',
+            adaptive_height=True
         )
         
         # Campo usuario
         self.campo_usuario = MDTextField(
-            hint_text='Usuario',
-            mode='rectangle',
-            icon_left='account',
-            size_hint_y=0.15
+            MDTextFieldLeadingIcon(icon='account'),
+            MDTextFieldHintText(text='Usuario'),
+            mode='outlined',
         )
         
         # Campo contraseña
         self.campo_password = MDTextField(
-            hint_text='Contraseña',
-            mode='rectangle',
+            MDTextFieldLeadingIcon(icon='lock'),
+            MDTextFieldHintText(text='Contraseña'),
+            mode='outlined',
             password=True,
-            icon_left='lock',
-            size_hint_y=0.15
         )
         
-        # Botón login
-        self.boton_login = MDRaisedButton(
-            text='Iniciar Sesión',
-            size_hint_y=0.15,
+        # Botón login (Actualizado para KivyMD 2.0)
+        self.boton_login = MDButton(
+            MDButtonText(text='Iniciar Sesión'),
+            style="elevated",
+            theme_bg_color="Custom",
             md_bg_color=(0.1, 0.5, 0.8, 1)
         )
         self.boton_login.bind(on_release=self.on_login)
@@ -110,18 +111,23 @@ class LoginScreen(MDScreen):
             usuario_actual = self.auth_controller.obtener_usuario_actual()
             self.mensaje.text = f"Bienvenido, {usuario_actual['nombre']}"
             self.mensaje.theme_text_color = 'Primary'
+            
+            # CÓDIGO DE NAVEGACIÓN
+            # Obtenemos la app principal en ejecución
+            from kivymd.app import MDApp
+            app = MDApp.get_running_app()
+            
+            # Llamamos a una función de la app para cambiar de pantalla
+            if hasattr(app, 'cambiar_a_main'):
+                app.cambiar_a_main(usuario_actual)
         else:
             self.mensaje.text = "Usuario o contraseña incorrectos"
             self.mensaje.theme_text_color = 'Error'
 
-        
-        
     def limpiar_campos(self):
         """
         Limpia los campos de texto
         """
         self.campo_usuario.text = ''
-        self.campo_contraseña.text = ''
+        self.campo_password.text = '' # BUG CRÍTICO SOLUCIONADO
         self.mensaje.text = ''
-
-

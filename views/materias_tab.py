@@ -4,12 +4,12 @@
 
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.card import MDCard
-from kivymd.uix.textfield import MDTextField
-from kivymd.uix.button import MDRaisedButton, MDFlatButton
+from kivymd.uix.textfield import MDTextField, MDTextFieldHintText
+from kivymd.uix.button import MDButton, MDButtonText
 from kivymd.uix.label import MDLabel
-from kivymd.uix.list import MDList, OneLineListItem, TwoLineListItem
+from kivymd.uix.list import MDList, MDListItem, MDListItemHeadlineText, MDListItemSupportingText
 from kivymd.uix.scrollview import MDScrollView
-from kivymd.uix.dialog import MDDialog
+from kivymd.uix.dialog import MDDialog, MDDialogHeadlineText, MDDialogContentContainer, MDDialogButtonContainer
 
 from controllers.materia_controller import MateriaController
 
@@ -60,14 +60,17 @@ class MateriasTab(MDBoxLayout):
         
         titulo = MDLabel(
             text="Mis Materias",
-            font_style="H6",
+            font_style="Title",
+            role="large",
             size_hint_x=0.7
         )
         
-        self.boton_crear = MDRaisedButton(
-            text="Crear Materia",
-            size_hint_x=0.3,
-            md_bg_color=(0.1, 0.5, 0.8, 1)
+        self.boton_crear = MDButton(
+            MDButtonText(text="Crear Materia"),
+            style="elevated",
+            theme_bg_color="Custom",
+            md_bg_color=(0.1, 0.5, 0.8, 1),
+            size_hint_x=0.3
         )
         self.boton_crear.bind(on_release=self.abrir_dialogo_crear)
         
@@ -107,16 +110,16 @@ class MateriasTab(MDBoxLayout):
         
         # Mostrar mensaje si no hay materias
         if not materias:
-            item = OneLineListItem(text="No tienes materias creadas aún")
+            item = MDListItem(MDListItemHeadlineText(text="No tienes materias creadas aún"))
             self.lista_materias.add_widget(item)
             return
         
         # Agregar cada materia a la lista
         for mat in materias:
             # mat = (id, nombre, fecha_creacion)
-            item = TwoLineListItem(
-                text=mat[1],
-                secondary_text=f"Creada: {mat[2][:10]}" if mat[2] else "Creada: recientemente"
+            item = MDListItem(
+                MDListItemHeadlineText(text=mat[1]),
+                MDListItemSupportingText(text=f"Creada: {mat[2][:10]}" if mat[2] else "Creada: recientemente")
             )
             self.lista_materias.add_widget(item)
     
@@ -140,8 +143,8 @@ class MateriasTab(MDBoxLayout):
         )
         
         self.campo_nombre_materia = MDTextField(
-            hint_text="Nombre de la materia",
-            mode="rectangle"
+            MDTextFieldHintText(text="Nombre de la materia"),
+            mode="outlined"
         )
         
         layout_dialogo.add_widget(self.campo_nombre_materia)
@@ -151,20 +154,22 @@ class MateriasTab(MDBoxLayout):
         # ============================================
         
         self.dialog_crear = MDDialog(
-            title="Crear Materia",
-            type="custom",
-            content_cls=layout_dialogo,
-            buttons=[
-                MDFlatButton(
-                    text="Cancelar",
+            MDDialogHeadlineText(text="Crear Materia"),
+            MDDialogContentContainer(layout_dialogo),
+            MDDialogButtonContainer(
+                MDButton(
+                    MDButtonText(text="Cancelar"), 
+                    style="text", 
                     on_release=lambda x: self.dialog_crear.dismiss()
                 ),
-                MDRaisedButton(
-                    text="Crear",
-                    md_bg_color=(0.1, 0.5, 0.8, 1),
+                MDButton(
+                    MDButtonText(text="Crear"), 
+                    style="elevated", 
+                    theme_bg_color="Custom", 
+                    md_bg_color=(0.1, 0.5, 0.8, 1), 
                     on_release=self.guardar_materia
                 )
-            ]
+            )
         )
         self.dialog_crear.open()
     

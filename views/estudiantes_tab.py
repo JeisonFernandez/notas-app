@@ -4,12 +4,12 @@
 
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.card import MDCard
-from kivymd.uix.textfield import MDTextField
-from kivymd.uix.button import MDRaisedButton, MDFlatButton
+from kivymd.uix.textfield import MDTextField, MDTextFieldLeadingIcon, MDTextFieldHintText
+from kivymd.uix.button import MDButton, MDButtonText
 from kivymd.uix.label import MDLabel
-from kivymd.uix.list import MDList, OneLineListItem, TwoLineListItem
+from kivymd.uix.list import MDList, MDListItem, MDListItemHeadlineText, MDListItemSupportingText
 from kivymd.uix.scrollview import MDScrollView
-from kivymd.uix.dialog import MDDialog
+from kivymd.uix.dialog import MDDialog, MDDialogHeadlineText, MDDialogContentContainer, MDDialogButtonContainer
 
 from controllers.estudiante_controller import EstudianteController
 
@@ -59,18 +59,20 @@ class EstudiantesTab(MDBoxLayout):
         
         # Campo de búsqueda
         self.campo_buscar = MDTextField(
-            hint_text="Buscar por nombre, apellido o cédula...",
-            mode="rectangle",
-            icon_left="magnify",
+            MDTextFieldLeadingIcon(icon="magnify"),
+            MDTextFieldHintText(text="Buscar por nombre, apellido o cédula..."),
+            mode="outlined",
             size_hint_x=0.8
         )
         self.campo_buscar.bind(on_text_validate=self.buscar_estudiantes)
         
         # Botón Agregar
-        self.boton_agregar = MDRaisedButton(
-            text="Agregar",
-            size_hint_x=0.2,
-            md_bg_color=(0.1, 0.6, 0.2, 1)
+        self.boton_agregar = MDButton(
+            MDButtonText(text="Agregar"),
+            style="elevated",
+            theme_bg_color="Custom",
+            md_bg_color=(0.1, 0.6, 0.2, 1),
+            size_hint_x=0.2
         )
         self.boton_agregar.bind(on_release=self.abrir_dialogo_agregar)
         
@@ -117,7 +119,7 @@ class EstudiantesTab(MDBoxLayout):
         
         # Mostrar mensaje si no hay estudiantes
         if not estudiantes:
-            item = OneLineListItem(text="No hay estudiantes registrados")
+            item = MDListItem(MDListItemHeadlineText(text="No hay estudiantes registrados"))
             self.lista_estudiantes.add_widget(item)
             return
         
@@ -127,9 +129,9 @@ class EstudiantesTab(MDBoxLayout):
             nombre_completo = f"{est[2]} {est[3]}"
             info = f"{est[1]} | {est[4]} | {est[5]}° | Sección {est[6]}"
             
-            item = TwoLineListItem(
-                text=nombre_completo,
-                secondary_text=info
+            item = MDListItem(
+                MDListItemHeadlineText(text=nombre_completo),
+                MDListItemSupportingText(text=info)
             )
             self.lista_estudiantes.add_widget(item)
     
@@ -158,34 +160,29 @@ class EstudiantesTab(MDBoxLayout):
         )
         
         self.campo_cedula = MDTextField(
-            hint_text="Cédula (ej: V-12345678)",
-            mode="rectangle"
+            MDTextFieldHintText(text="Cédula (ej: V-12345678)"),
+            mode="outlined"
         )
-        
         self.campo_nombres = MDTextField(
-            hint_text="Nombres",
-            mode="rectangle"
+            MDTextFieldHintText(text="Nombres"),
+            mode="outlined"
         )
-        
         self.campo_apellidos = MDTextField(
-            hint_text="Apellidos",
-            mode="rectangle"
+            MDTextFieldHintText(text="Apellidos"),
+            mode="outlined"
         )
-        
         self.campo_pnf = MDTextField(
-            hint_text="PNF (ej: Informática)",
-            mode="rectangle"
+            MDTextFieldHintText(text="PNF (ej: Informática)"),
+            mode="outlined"
         )
-        
         self.campo_trayecto = MDTextField(
-            hint_text="Trayecto (1-4)",
-            mode="rectangle",
+            MDTextFieldHintText(text="Trayecto (1-4)"),
+            mode="outlined",
             input_filter="int"
         )
-        
         self.campo_seccion = MDTextField(
-            hint_text="Sección (ej: A, B, Única)",
-            mode="rectangle"
+            MDTextFieldHintText(text="Sección (ej: A, B, Única)"),
+            mode="outlined"
         )
         
         layout_dialogo.add_widget(self.campo_cedula)
@@ -200,20 +197,22 @@ class EstudiantesTab(MDBoxLayout):
         # ============================================
         
         self.dialog_agregar = MDDialog(
-            title="Agregar Estudiante",
-            type="custom",
-            content_cls=layout_dialogo,
-            buttons=[
-                MDFlatButton(
-                    text="Cancelar",
+            MDDialogHeadlineText(text="Agregar Estudiante"),
+            MDDialogContentContainer(layout_dialogo),
+            MDDialogButtonContainer(
+                MDButton(
+                    MDButtonText(text="Cancelar"), 
+                    style="text", 
                     on_release=lambda x: self.dialog_agregar.dismiss()
                 ),
-                MDRaisedButton(
-                    text="Guardar",
-                    md_bg_color=(0.1, 0.6, 0.2, 1),
+                MDButton(
+                    MDButtonText(text="Guardar"), 
+                    style="elevated", 
+                    theme_bg_color="Custom", 
+                    md_bg_color=(0.1, 0.6, 0.2, 1), 
                     on_release=self.guardar_estudiante
                 )
-            ]
+            )
         )
         self.dialog_agregar.open()
     
@@ -279,9 +278,5 @@ class EstudiantesTab(MDBoxLayout):
     def mostrar_mensaje(self, mensaje):
         """
         Muestra un mensaje temporal usando un snackbar.
-        (Por ahora solo lo imprimimos, luego podemos implementar snackbar)
         """
         print(f"📢 {mensaje}")
-        # En una versión completa, usaríamos:
-        # from kivymd.uix.snackbar import MDSnackbar
-        # MDSnackbar(text=mensaje, duration=2).open()
