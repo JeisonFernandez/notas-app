@@ -69,7 +69,6 @@ class DatabaseManager:
             apellidos TEXT NOT NULL,
             pnf TEXT NOT NULL,
             trayecto INTEGER NOT NULL,
-            seccion TEXT NOT NULL,
             fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         '''

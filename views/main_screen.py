@@ -1,32 +1,41 @@
+import os
+from kivy.lang import Builder
 from kivymd.uix.screen import MDScreen
 from kivymd.app import MDApp
-from views.notas_screen import NotasScreen
-from views.estudiantes_screen import EstudiantesScreen
-from views.materias_screen import MateriasScreen
+from kivy.properties import ObjectProperty
+
+from views.notas_tab import NotasTab
+from views.estudiantes_tab import EstudiantesTab
+from views.materias_tab import MateriasTab
+
+kv_path = os.path.join(os.path.dirname(__file__), 'main_screen.kv')
+Builder.load_file(kv_path)
 
 class MainScreen(MDScreen):
-    def __init__(self, profesor_actual, **kwargs):
+    profesor_actual = ObjectProperty(None)
+
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.profesor_actual = profesor_actual
-        self.build_ui()
+        
+    def on_switch_tabs(self, bar, item, item_icon, item_label):
+        """Maneja el evento cuando se toca un item en el MDNavigationBar."""
+        
+        # CORRECCIÓN: En KivyMD 2.0, item_label ya es el string directo.
+        pantalla = item_label
+        
+        if pantalla == 'Notas':
+            self.ids.tab_manager.current = 'nav_notas'
+        elif pantalla == 'Estudiantes':
+            self.ids.tab_manager.current = 'nav_estudiantes'
+        elif pantalla == 'Materias':
+            self.ids.tab_manager.current = 'nav_materias'
+        elif pantalla == 'Perfil':
+            self.ids.tab_manager.current = 'nav_perfil'
 
-    def build_ui(self):
-        # Crear las pantallas de cada pestaña
-        self.tab_notas = NotasScreen(name="Notas")
-        self.tab_estudiantes = EstudiantesScreen(name="Estudiantes")
-        self.tab_materias = MateriasScreen(name="Materias")
-
-        # Agregar al ScreenManager
-        sm = self.ids.sm_contenido
-        sm.add_widget(self.tab_notas)
-        sm.add_widget(self.tab_estudiantes)
-        sm.add_widget(self.tab_materias)
-
-    def cambiar_pestana(self, nombre):
-        self.ids.sm_contenido.current = nombre
-
-    def cerrar_sesion(self):
-        # Mostrar diálogo y luego notificar a la app
+    def logout(self):
+        """Cierra sesión y vuelve al login."""
         app = MDApp.get_running_app()
-        if hasattr(app, 'cerrar_sesion'):
-            app.cerrar_sesion()
+        if hasattr(app, 'profesor_actual'):
+            app.profesor_actual = None
+            
+        self.manager.current = 'login'

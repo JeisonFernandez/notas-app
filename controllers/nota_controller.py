@@ -8,6 +8,39 @@ class NotaController:
     
     def __init__(self):
         self.modelo = NotaModel()
+
+    def obtener_todas(self):
+        return self.modelo.obtener_todas()
+    
+    def actualizar_notas(self, nota_id, nota1, nota2, nota3, nota4, nota5):
+        try:
+            notas = [float(nota1), float(nota2), float(nota3), float(nota4), float(nota5)]
+        except ValueError:
+            return {'success': False, 'message': 'Las notas deben ser números válidos'}
+        
+        for nota in notas:
+            if nota < 0 or nota > 20:
+                return {'success': False, 'message': 'Las notas deben estar entre 0 y 20'}
+                
+        promedio = sum(notas) / 5
+        estado = "APRUEBA" if promedio >= 12.0 else "DESAPRUEBA"
+        
+        # Guardar en base de datos
+        resultado = self.modelo.actualizar_notas(
+            nota_id, notas[0], notas[1], notas[2], notas[3], notas[4], promedio, estado
+        )
+        
+        if resultado:
+            return {'success': True, 'message': 'Notas actualizadas', 'promedio': promedio, 'estado': estado}
+        return {'success': False, 'message': 'Error al actualizar las notas'}
+    
+    def eliminar_nota(self, nota_id):
+        resultado = self.modelo.eliminar_nota(nota_id)
+        
+        if resultado is not None: 
+            return {'success': True, 'message': 'Nota eliminada'}
+        else:
+            return {'success': False, 'message': 'Error al eliminar nota'}
     
     def guardar_notas(self, estudiante_id, materia_id, nota1, nota2, nota3, nota4, nota5, periodo="2026-1"):
     

@@ -1,282 +1,138 @@
-# ============================================================
-# 1. IMPORTACIONES
-# ============================================================
-
-from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.card import MDCard
-from kivymd.uix.textfield import MDTextField, MDTextFieldLeadingIcon, MDTextFieldHintText
-from kivymd.uix.button import MDButton, MDButtonText
-from kivymd.uix.label import MDLabel
-from kivymd.uix.list import MDList, MDListItem, MDListItemHeadlineText, MDListItemSupportingText
-from kivymd.uix.scrollview import MDScrollView
-from kivymd.uix.dialog import MDDialog, MDDialogHeadlineText, MDDialogContentContainer, MDDialogButtonContainer
+import os
+from kivy.lang import Builder
 from kivy.metrics import dp
+
+from kivymd.uix.screen import MDScreen
+from kivymd.uix.list import MDListItem, MDListItemHeadlineText, MDListItemSupportingText, MDListItemTrailingIcon
+from kivymd.uix.dialog import MDDialog, MDDialogHeadlineText, MDDialogContentContainer, MDDialogButtonContainer
+from kivymd.uix.button import MDButton, MDButtonText
+from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.textfield import MDTextField, MDTextFieldHintText
+from kivymd.uix.label import MDLabel
 
 from controllers.estudiante_controller import EstudianteController
 
+# Cargar el archivo .kv asociado explícitamente
+kv_path = os.path.join(os.path.dirname(__file__), 'estudiantes_tab.kv')
+Builder.load_file(kv_path)
 
-# ============================================================
-# 2. CLASE PRINCIPAL
-# ============================================================
-
-class EstudiantesTab(MDBoxLayout):
-    """
-    Pestaña para gestionar estudiantes.
-    Contiene: lista de estudiantes, campo de búsqueda, botón agregar.
-    """
-    
+class EstudiantesTab(MDScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.orientation = 'vertical'
-        self.spacing = 10
-        self.padding = 15
         
-        # Controlador
+        # El verdadero Controlador
         self.estudiante_controller = EstudianteController()
         
-        # Diálogo para agregar estudiante
-        self.dialog_agregar = None
+        self.dialog = None
+        self.estudiantes_totales = [] # Caché para la búsqueda
         
-        self.build_ui()
+    def on_enter(self, *args):
         self.cargar_estudiantes()
-    
-    # ============================================================
-    # 3. CONSTRUIR INTERFAZ
-    # ============================================================
-    
-    def build_ui(self):
-        """Construye la interfaz de la pestaña Estudiantes"""
-        
-        # ============================================
-        # 3.1. BARRA DE BÚSQUEDA Y AGREGAR
-        # ============================================
-        
-        barra_superior = MDBoxLayout(
-            orientation='horizontal',
-            spacing=dp(10),
-            adaptive_height=True,  # <- Dejamos que calcule su propia altura
-            padding=[0, dp(15), 0, dp(15)]  # Le damos un poco de aire arriba y abajo
-        )
-        
-        # Campo de búsqueda
-        self.campo_buscar = MDTextField(
-            MDTextFieldLeadingIcon(icon="magnify"),
-            MDTextFieldHintText(text="Buscar por nombre, apellido o cédula..."),
-            mode="outlined",
-            size_hint_x=0.8
-        )
-        self.campo_buscar.bind(on_text_validate=self.buscar_estudiantes)
-        
-        # Botón Agregar
-        self.boton_agregar = MDButton(
-            MDButtonText(text="Agregar"),
-            style="elevated",
-            theme_bg_color="Custom",
-            md_bg_color=(0.1, 0.6, 0.2, 1),
-            size_hint_x=0.2
-        )
-        self.boton_agregar.bind(on_release=self.abrir_dialogo_agregar)
-        
-        barra_superior.add_widget(self.campo_buscar)
-        barra_superior.add_widget(self.boton_agregar)
-        
-        # ============================================
-        # 3.2. LISTA DE ESTUDIANTES (con scroll)
-        # ============================================
-        
-        self.scroll_estudiantes = MDScrollView(
-            size_hint_y=1
-        )
-        
-        self.lista_estudiantes = MDList()
-        self.scroll_estudiantes.add_widget(self.lista_estudiantes)
-        
-        # ============================================
-        # 3.3. ARMAR TODO
-        # ============================================
-        
-        self.add_widget(barra_superior)
-        self.add_widget(self.scroll_estudiantes)
-    
-    # ============================================================
-    # 4. CARGAR ESTUDIANTES
-    # ============================================================
-    
-    def cargar_estudiantes(self, texto_busqueda=None):
-        """
-        Carga estudiantes desde la BD y los muestra en la lista.
-        
-        Args:
-            texto_busqueda (str): Texto para buscar (opcional)
-        """
-        # Limpiar lista actual
-        self.lista_estudiantes.clear_widgets()
-        
-        # Obtener datos
-        if texto_busqueda and texto_busqueda.strip():
-            estudiantes = self.estudiante_controller.buscar(texto_busqueda)
-        else:
-            estudiantes = self.estudiante_controller.listar_todos()
-        
-        # Mostrar mensaje si no hay estudiantes
-        if not estudiantes:
-            item = MDListItem(MDListItemHeadlineText(text="No hay estudiantes registrados"))
-            self.lista_estudiantes.add_widget(item)
-            return
-        
-        # Agregar cada estudiante a la lista
-        for est in estudiantes:
-            # est = (id, cedula, nombres, apellidos, pnf, trayecto, seccion)
-            nombre_completo = f"{est[2]} {est[3]}"
-            info = f"{est[1]} | {est[4]} | {est[5]}° | Sección {est[6]}"
-            
-            item = MDListItem(
-                MDListItemHeadlineText(text=nombre_completo),
-                MDListItemSupportingText(text=info)
-            )
-            self.lista_estudiantes.add_widget(item)
-    
-    def buscar_estudiantes(self, instance):
-        """Ejecuta búsqueda cuando se presiona Enter en el campo de búsqueda"""
-        texto = self.campo_buscar.text
-        self.cargar_estudiantes(texto)
-    
-    # ============================================================
-    # 5. AGREGAR ESTUDIANTE (Diálogo)
-    # ============================================================
-    
-    def abrir_dialogo_agregar(self, instance):
-        """Abre un diálogo para agregar un nuevo estudiante"""
-        
-        # 1. Usamos adaptive_height en lugar de height fijo
-        layout_dialogo = MDBoxLayout(
-            orientation='vertical',
-            spacing=dp(15),
-            padding=dp(10),
-            adaptive_height=True  # <- CAMBIO CLAVE
-        )
-        
-        self.campo_cedula = MDTextField(
-            MDTextFieldHintText(text="Cédula (ej: V-12345678)"),
-            mode="outlined"
-        )
-        self.campo_nombres = MDTextField(
-            MDTextFieldHintText(text="Nombres"),
-            mode="outlined"
-        )
-        self.campo_apellidos = MDTextField(
-            MDTextFieldHintText(text="Apellidos"),
-            mode="outlined"
-        )
-        self.campo_pnf = MDTextField(
-            MDTextFieldHintText(text="PNF (ej: Informática)"),
-            mode="outlined"
-        )
-        self.campo_trayecto = MDTextField(
-            MDTextFieldHintText(text="Trayecto (1-4)"),
-            mode="outlined",
-            input_filter="int"
-        )
-        self.campo_seccion = MDTextField(
-            MDTextFieldHintText(text="Sección (ej: A, B, Única)"),
-            mode="outlined"
-        )
-        
-        layout_dialogo.add_widget(self.campo_cedula)
-        layout_dialogo.add_widget(self.campo_nombres)
-        layout_dialogo.add_widget(self.campo_apellidos)
-        layout_dialogo.add_widget(self.campo_pnf)
-        layout_dialogo.add_widget(self.campo_trayecto)
-        layout_dialogo.add_widget(self.campo_seccion)
-        
-        # ============================================
-        # 5.2. DIÁLOGO
-        # ============================================
-        
-        scroll = MDScrollView(size_hint_y=None, height=dp(350))
-        scroll.add_widget(layout_dialogo)
 
-        self.dialog_agregar = MDDialog(
-            MDDialogHeadlineText(text="Agregar Estudiante"),
-            MDDialogContentContainer(scroll),  # <- CAMBIO CLAVE
-            MDDialogButtonContainer(
-                MDButton(
-                    MDButtonText(text="Cancelar"), 
-                    style="text", 
-                    on_release=lambda x: self.dialog_agregar.dismiss()
-                ),
-                MDButton(
-                    MDButtonText(text="Guardar"), 
-                    style="elevated", 
-                    theme_bg_color="Custom", 
-                    md_bg_color=(0.1, 0.6, 0.2, 1), 
-                    on_release=self.guardar_estudiante
+    # ==========================================
+    # LÓGICA DE LISTADO Y BÚSQUEDA
+    # ==========================================
+    def cargar_estudiantes(self):
+        """Obtiene los datos de la BD y refresca la lista."""
+        self.estudiantes_totales = self.estudiante_controller.listar_todos()
+        self.renderizar_lista(self.estudiantes_totales)
+
+    def filtrar_estudiantes(self, texto):
+        """Filtra la lista en memoria sin golpear la BD repetidamente."""
+        if not texto:
+            self.renderizar_lista(self.estudiantes_totales)
+            return
+            
+        texto = texto.lower()
+        filtrados = [
+            est for est in self.estudiantes_totales 
+            if texto in est[1].lower() or texto in est[2].lower() or texto in est[3].lower()
+        ]
+        self.renderizar_lista(filtrados)
+
+    def renderizar_lista(self, datos):
+        self.ids.lista_estudiantes.clear_widgets()
+        
+        if not datos:
+            self.mostrar_mensaje("No se encontraron estudiantes.", (0.5, 0.5, 0.5, 1))
+            return
+            
+        self.mostrar_mensaje("", (0,0,0,0))
+        
+        for est in datos:
+            # est = (id, cedula, nombre, apellido, ...)
+            item = MDListItem(
+                MDListItemHeadlineText(text=f"{est[2]} {est[3]}"),
+                MDListItemSupportingText(text=f"C.I: {est[1]}"),
+                MDListItemTrailingIcon(
+                    icon="delete",
+                    on_release=lambda x, estudiante_id=est[0]: self.eliminar_estudiante(estudiante_id)
                 )
             )
+            self.ids.lista_estudiantes.add_widget(item)
+
+    def mostrar_mensaje(self, texto, color):
+        lbl = self.ids.lbl_mensaje
+        lbl.text = texto
+        lbl.text_color = color
+        lbl.height = dp(30) if texto else dp(0)
+
+    # ==========================================
+    # LÓGICA DEL DIÁLOGO Y CRUD
+    # ==========================================
+    def abrir_dialogo_agregar(self):
+        contenido = MDBoxLayout(orientation='vertical', spacing=dp(10), size_hint_y=None, height=dp(350))
+        
+        self.campo_cedula = MDTextField(MDTextFieldHintText(text="Cédula"), mode="outlined")
+        self.campo_nombre = MDTextField(MDTextFieldHintText(text="Nombre"), mode="outlined")
+        self.campo_apellido = MDTextField(MDTextFieldHintText(text="Apellido"), mode="outlined")
+        self.campo_pnf = MDTextField(MDTextFieldHintText(text="PNF"), mode="outlined")
+        self.campo_trayecto = MDTextField(MDTextFieldHintText(text="Trayecto"), mode="outlined")
+        self.lbl_error_dlg = MDLabel(text="", theme_text_color="Custom", text_color=(1,0,0,1), size_hint_y=None, height=dp(20))
+        
+        contenido.add_widget(self.campo_cedula)
+        contenido.add_widget(self.campo_nombre)
+        contenido.add_widget(self.campo_apellido)
+        contenido.add_widget(self.campo_pnf)
+        contenido.add_widget(self.campo_trayecto)
+        contenido.add_widget(self.lbl_error_dlg)
+        
+        self.dialog = MDDialog(
+            MDDialogHeadlineText(text="Nuevo Estudiante"),
+            MDDialogContentContainer(contenido),
+            MDDialogButtonContainer(
+                MDButton(MDButtonText(text="CANCELAR"), style="text", on_release=lambda x: self.dialog.dismiss()),
+                MDButton(MDButtonText(text="GUARDAR"), style="elevated", on_release=self.guardar_estudiante)
+            )
         )
-        self.dialog_agregar.open()
-    
+        self.dialog.open()
+
     def guardar_estudiante(self, instance):
-        """Guarda el nuevo estudiante desde el diálogo"""
+        ced = self.campo_cedula.text.strip()
+        nom = self.campo_nombre.text.strip()
+        ape = self.campo_apellido.text.strip()
+        pnf = self.campo_pnf.text.strip()
+        tray = self.campo_trayecto.text.strip()
         
-        # Obtener datos del diálogo
-        cedula = self.campo_cedula.text
-        nombres = self.campo_nombres.text
-        apellidos = self.campo_apellidos.text
-        pnf = self.campo_pnf.text
-        trayecto = self.campo_trayecto.text
-        seccion = self.campo_seccion.text
-        
-        # Llamar al controlador
-        resultado = self.estudiante_controller.crear(
-            cedula, nombres, apellidos, pnf, trayecto, seccion
-        )
-        
-        if resultado['success']:
-            # Cerrar diálogo
-            self.dialog_agregar.dismiss()
+        if not ced or not nom or not ape or not pnf or not tray:
+            self.lbl_error_dlg.text = "Todos los campos son obligatorios"
+            return
             
-            # Limpiar campos (para la próxima vez que se abra)
-            self.limpiar_campos_dialogo()
-            
-            # Recargar lista
+        # Llamada al VERDADERO controlador
+        resultado = self.estudiante_controller.crear(ced, nom, ape, pnf, tray)
+        
+        if resultado.get('success'):
+            self.dialog.dismiss()
             self.cargar_estudiantes()
-            
-            # Mostrar mensaje de éxito (opcional, podemos usar un snackbar)
-            self.mostrar_mensaje("✅ Estudiante creado exitosamente")
+            self.mostrar_mensaje("Estudiante registrado con éxito.", (0, 0.7, 0, 1))
         else:
-            # Mostrar error en el diálogo
-            self.mostrar_mensaje_dialogo(resultado['message'])
-    
-    def limpiar_campos_dialogo(self):
-        """Limpia los campos del diálogo"""
-        self.campo_cedula.text = ""
-        self.campo_nombres.text = ""
-        self.campo_apellidos.text = ""
-        self.campo_pnf.text = ""
-        self.campo_trayecto.text = ""
-        self.campo_seccion.text = ""
-    
-    def mostrar_mensaje_dialogo(self, mensaje):
-        """Muestra un mensaje de error dentro del diálogo"""
-        # Buscar si ya existe un label de mensaje
-        for child in self.dialog_agregar.content_cls.children:
-            if isinstance(child, MDLabel) and child.text.startswith("❌"):
-                child.text = f"❌ {mensaje}"
-                return
-        
-        # Si no existe, crearlo
-        label_error = MDLabel(
-            text=f"❌ {mensaje}",
-            halign="center",
-            theme_text_color="Error",
-            size_hint_y=None,
-            height=30
-        )
-        self.dialog_agregar.content_cls.add_widget(label_error)
-    
-    def mostrar_mensaje(self, mensaje):
-        """
-        Muestra un mensaje temporal usando un snackbar.
-        """
-        print(f"📢 {mensaje}")
+            self.lbl_error_dlg.text = resultado.get('message', 'Error al guardar')
+
+    def eliminar_estudiante(self, estudiante_id):
+        # Aquí llamarías al método de tu controlador para eliminar
+        resultado = self.estudiante_controller.eliminar(estudiante_id)
+        if resultado.get('success'):
+            self.cargar_estudiantes()
+            self.mostrar_mensaje("Estudiante eliminado.", (0, 0.7, 0, 1))
+        else:
+            self.mostrar_mensaje(resultado.get('message', 'Error al eliminar'), (1, 0, 0, 1))

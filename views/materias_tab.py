@@ -1,225 +1,109 @@
-# ============================================================
-# 1. IMPORTACIONES
-# ============================================================
-
-from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.card import MDCard
-from kivymd.uix.textfield import MDTextField, MDTextFieldHintText
-from kivymd.uix.button import MDButton, MDButtonText
-from kivymd.uix.label import MDLabel
-from kivymd.uix.list import MDList, MDListItem, MDListItemHeadlineText, MDListItemSupportingText
-from kivymd.uix.scrollview import MDScrollView
-from kivymd.uix.dialog import MDDialog, MDDialogHeadlineText, MDDialogContentContainer, MDDialogButtonContainer
+import os
+from kivy.lang import Builder
 from kivy.metrics import dp
+
+from kivymd.uix.screen import MDScreen
+from kivymd.uix.list import MDListItem, MDListItemHeadlineText, MDListItemTrailingIcon
+from kivymd.uix.dialog import MDDialog, MDDialogHeadlineText, MDDialogContentContainer, MDDialogButtonContainer
+from kivymd.uix.button import MDButton, MDButtonText
+from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.textfield import MDTextField, MDTextFieldHintText
+from kivymd.uix.label import MDLabel
 
 from controllers.materia_controller import MateriaController
 
+# Cargar el archivo .kv asociado explícitamente
+kv_path = os.path.join(os.path.dirname(__file__), 'materias_tab.kv')
+Builder.load_file(kv_path)
 
-# ============================================================
-# 2. CLASE PRINCIPAL
-# ============================================================
-
-class MateriasTab(MDBoxLayout):
-    """
-    Pestaña para gestionar materias.
-    Contiene: lista de materias, botón crear materia.
-    """
-    
-    def __init__(self, profesor_id, **kwargs):
+class MateriasTab(MDScreen):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.profesor_id = profesor_id
-        self.orientation = 'vertical'
-        self.spacing = 10
-        self.padding = 15
         
-        # Controlador
         self.materia_controller = MateriaController()
+        self.dialog = None
         
-        # Diálogo para crear materia
-        self.dialog_crear = None
+        # ID del profesor logueado (Por ahora quemado en 1 para pruebas)
+        # En el futuro, esto se tomará de MDApp.get_running_app().profesor_actual['id']
+        self.profesor_id_actual = 1 
         
-        self.build_ui()
+    def on_enter(self, *args):
         self.cargar_materias()
-    
-    # ============================================================
-    # 3. CONSTRUIR INTERFAZ
-    # ============================================================
-    
-    def build_ui(self):
-        """Construye la interfaz de la pestaña Materias"""
-        
-        # ============================================
-        # 3.1. BARRA SUPERIOR: Título + Botón Crear
-        # ============================================
-        
-        barra_superior = MDBoxLayout(
-            orientation='horizontal',
-            spacing=dp(10),
-            adaptive_height=True,  # <- Que se adapte solo
-            padding=[0, dp(15), 0, dp(15)]
-        )
-        
-        titulo = MDLabel(
-            text="Mis Materias",
-            font_style="Title",
-            role="large",
-            size_hint_x=0.7
-        )
-        
-        self.boton_crear = MDButton(
-            MDButtonText(text="Crear Materia"),
-            style="elevated",
-            theme_bg_color="Custom",
-            md_bg_color=(0.1, 0.5, 0.8, 1),
-            size_hint_x=0.3
-        )
-        self.boton_crear.bind(on_release=self.abrir_dialogo_crear)
-        
-        barra_superior.add_widget(titulo)
-        barra_superior.add_widget(self.boton_crear)
-        
-        # ============================================
-        # 3.2. LISTA DE MATERIAS (con scroll)
-        # ============================================
-        
-        self.scroll_materias = MDScrollView(
-            size_hint_y=1
-        )
-        
-        self.lista_materias = MDList()
-        self.scroll_materias.add_widget(self.lista_materias)
-        
-        # ============================================
-        # 3.3. ARMAR TODO
-        # ============================================
-        
-        self.add_widget(barra_superior)
-        self.add_widget(self.scroll_materias)
-    
-    # ============================================================
-    # 4. CARGAR MATERIAS
-    # ============================================================
-    
+
+    # ==========================================
+    # LÓGICA DE LISTADO
+    # ==========================================
     def cargar_materias(self):
-        """Carga materias del profesor desde la BD y las muestra en la lista"""
+        self.ids.lista_materias.clear_widgets()
         
-        # Limpiar lista actual
-        self.lista_materias.clear_widgets()
+        materias = self.materia_controller.listar_por_profesor(self.profesor_id_actual)
         
-        # Obtener datos
-        materias = self.materia_controller.listar_por_profesor(self.profesor_id)
-        
-        # Mostrar mensaje si no hay materias
         if not materias:
-            item = MDListItem(MDListItemHeadlineText(text="No tienes materias creadas aún"))
-            self.lista_materias.add_widget(item)
+            self.mostrar_mensaje("No tienes materias registradas.", (0.5, 0.5, 0.5, 1))
             return
+            
+        self.mostrar_mensaje("", (0,0,0,0))
         
-        # Agregar cada materia a la lista
         for mat in materias:
-            # mat = (id, nombre, fecha_creacion)
+            # mat = (id, nombre, profesor_id)
             item = MDListItem(
                 MDListItemHeadlineText(text=mat[1]),
-                MDListItemSupportingText(text=f"Creada: {mat[2][:10]}" if mat[2] else "Creada: recientemente")
-            )
-            self.lista_materias.add_widget(item)
-    
-    # ============================================================
-    # 5. CREAR MATERIA (Diálogo)
-    # ============================================================
-    
-    def abrir_dialogo_crear(self, instance):
-        """Abre un diálogo para crear una nueva materia"""
-        
-        # ============================================
-        # 5.1. CONTENIDO DEL DIÁLOGO
-        # ============================================
-        
-        layout_dialogo = MDBoxLayout(
-            orientation='vertical',
-            spacing=10,
-            padding=10,
-            size_hint_y=None,
-            height=150
-        )
-        
-        self.campo_nombre_materia = MDTextField(
-            MDTextFieldHintText(text="Nombre de la materia"),
-            mode="outlined"
-        )
-        
-        layout_dialogo.add_widget(self.campo_nombre_materia)
-        
-        # ============================================
-        # 5.2. DIÁLOGO
-        # ============================================
-        
-        self.dialog_crear = MDDialog(
-            MDDialogHeadlineText(text="Crear Materia"),
-            MDDialogContentContainer(layout_dialogo),
-            MDDialogButtonContainer(
-                MDButton(
-                    MDButtonText(text="Cancelar"), 
-                    style="text", 
-                    on_release=lambda x: self.dialog_crear.dismiss()
-                ),
-                MDButton(
-                    MDButtonText(text="Crear"), 
-                    style="elevated", 
-                    theme_bg_color="Custom", 
-                    md_bg_color=(0.1, 0.5, 0.8, 1), 
-                    on_release=self.guardar_materia
+                MDListItemTrailingIcon(
+                    icon="delete",
+                    on_release=lambda x, materia_id=mat[0]: self.eliminar_materia(materia_id)
                 )
             )
+            self.ids.lista_materias.add_widget(item)
+
+    def mostrar_mensaje(self, texto, color):
+        lbl = self.ids.lbl_mensaje
+        lbl.text = texto
+        lbl.text_color = color
+        lbl.height = dp(30) if texto else dp(0)
+
+    # ==========================================
+    # LÓGICA DEL DIÁLOGO Y CRUD
+    # ==========================================
+    def abrir_dialogo_agregar(self):
+        contenido = MDBoxLayout(orientation='vertical', spacing=dp(10), size_hint_y=None, height=dp(120))
+        
+        self.campo_nombre = MDTextField(MDTextFieldHintText(text="Nombre de la Materia"), mode="outlined")
+        self.lbl_error_dlg = MDLabel(text="", theme_text_color="Custom", text_color=(1,0,0,1), size_hint_y=None, height=dp(20))
+        
+        contenido.add_widget(self.campo_nombre)
+        contenido.add_widget(self.lbl_error_dlg)
+        
+        self.dialog = MDDialog(
+            MDDialogHeadlineText(text="Nueva Materia"),
+            MDDialogContentContainer(contenido),
+            MDDialogButtonContainer(
+                MDButton(MDButtonText(text="CANCELAR"), style="text", on_release=lambda x: self.dialog.dismiss()),
+                MDButton(MDButtonText(text="GUARDAR"), style="elevated", on_release=self.guardar_materia)
+            )
         )
-        self.dialog_crear.open()
-    
+        self.dialog.open()
+
     def guardar_materia(self, instance):
-        """Guarda la nueva materia desde el diálogo"""
+        nombre = self.campo_nombre.text.strip()
         
-        nombre = self.campo_nombre_materia.text
-        
-        # Llamar al controlador
-        resultado = self.materia_controller.crear(nombre, self.profesor_id)
-        
-        if resultado['success']:
-            # Cerrar diálogo
-            self.dialog_crear.dismiss()
+        if not nombre:
+            self.lbl_error_dlg.text = "El nombre es obligatorio"
+            return
             
-            # Limpiar campo
-            self.campo_nombre_materia.text = ""
-            
-            # Recargar lista
+        # Llamar al controlador para guardar
+        resultado = self.materia_controller.crear(nombre, self.profesor_id_actual)
+        
+        if resultado.get('success'):
+            self.dialog.dismiss()
             self.cargar_materias()
-            
-            # Mostrar mensaje de éxito
-            self.mostrar_mensaje("✅ Materia creada exitosamente")
+            self.mostrar_mensaje("Materia agregada con éxito.", (0, 0.7, 0, 1))
         else:
-            # Mostrar error en el diálogo
-            self.mostrar_mensaje_dialogo(resultado['message'])
-    
-    def limpiar_campos_dialogo(self):
-        """Limpia los campos del diálogo"""
-        self.campo_nombre_materia.text = ""
-    
-    def mostrar_mensaje_dialogo(self, mensaje):
-        """Muestra un mensaje de error dentro del diálogo"""
-        # Buscar si ya existe un label de mensaje
-        for child in self.dialog_crear.content_cls.children:
-            if isinstance(child, MDLabel) and child.text.startswith("❌"):
-                child.text = f"❌ {mensaje}"
-                return
-        
-        # Si no existe, crearlo
-        label_error = MDLabel(
-            text=f"❌ {mensaje}",
-            halign="center",
-            theme_text_color="Error",
-            size_hint_y=None,
-            height=30
-        )
-        self.dialog_crear.content_cls.add_widget(label_error)
-    
-    def mostrar_mensaje(self, mensaje):
-        """Muestra un mensaje temporal"""
-        print(f"📢 {mensaje}")
+            self.lbl_error_dlg.text = resultado.get('message', 'Error al guardar')
+
+    def eliminar_materia(self, materia_id):
+        resultado = self.materia_controller.eliminar(materia_id)
+        if resultado.get('success'):
+            self.cargar_materias()
+            self.mostrar_mensaje("Materia eliminada.", (0, 0.7, 0, 1))
+        else:
+            self.mostrar_mensaje(resultado.get('message', 'Error al eliminar (¿Tiene notas asociadas?)'), (1, 0, 0, 1))

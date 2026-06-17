@@ -1,39 +1,86 @@
+#:kivy 2.3.0
+
 <MainScreen>:
-        MDBoxLayout:
+    MDBoxLayout:
         orientation: 'vertical'
 
-        MDTopAppBar:
-            title: "Control de Notas"
-            type: "small"
-            MDTopAppBarLeadingButtonContainer:
-                MDActionTopAppBarButton:
-                    icon: "menu"
-            MDTopAppBarTitle:
-                text: "Control de Notas"
-            MDTopAppBarTrailingButtonContainer:
-                MDActionTopAppBarButton:
-                    icon: "logout"
-                    on_release: root.cerrar_sesion()
+        # 1. GESTOR DE PESTAÑAS (Maneja las vistas superiores)
+        MDScreenManager:
+            id: tab_manager
 
-        MDTabsPrimary:
-            MDTabsItem:
-                MDTabsItemIcon:
-                    icon: "notebook"
-                MDTabsItemText:
-                    text: "Notas"
-                on_release: root.cambiar_pestana("Notas")
-            MDTabsItem:
-                MDTabsItemIcon:
-                    icon: "account-group"
-                MDTabsItemText:
-                    text: "Estudiantes"
-                on_release: root.cambiar_pestana("Estudiantes")
-            MDTabsItem:
-                MDTabsItemIcon:
-                    icon: "book-open-variant"
-                MDTabsItemText:
-                    text: "Materias"
-                on_release: root.cambiar_pestana("Materias")
+            NotasTab:
+                name: 'nav_notas'
 
-        ScreenManager:
-            id: sm_contenido
+            EstudiantesTab:
+                name: 'nav_estudiantes'
+
+            MateriasTab:
+                name: 'nav_materias'
+
+            # Pestaña de Perfil / Logout
+            MDScreen:
+                name: 'nav_perfil'
+                MDBoxLayout:
+                    orientation: 'vertical'
+                    padding: dp(20)
+                    spacing: dp(20)
+
+                    MDTopAppBar:
+                        type: "small"
+                        MDTopAppBarTitle:
+                            text: "Mi Perfil"
+
+                    MDBoxLayout:
+                        orientation: 'vertical'
+                        halign: 'center'
+                        valign: 'center'
+
+                        MDLabel:
+                            text: "Sesión Activa"
+                            halign: "center"
+                            font_style: "Headline"
+                            role: "small"
+
+                        Widget:
+
+                        MDButton:
+                            style: "filled"
+                            theme_bg_color: "Custom"
+                            md_bg_color: (0.8, 0.1, 0.1, 1)
+                            pos_hint: {"center_x": 0.5}
+                            on_release: root.logout()
+
+                            MDButtonText:
+                                text: "CERRAR SESIÓN"
+                                text_color: (1, 1, 1, 1)
+
+                        Widget:
+
+        # 2. BARRA DE NAVEGACIÓN INFERIOR (KivyMD 2.0)
+        MDNavigationBar:
+            on_switch_tabs: root.on_switch_tabs(*args)
+
+            MDNavigationItem:
+                active: True
+                MDNavigationItemIcon:
+                    icon: 'clipboard-text'
+                MDNavigationItemLabel:
+                    text: 'Notas'
+
+            MDNavigationItem:
+                MDNavigationItemIcon:
+                    icon: 'account-group'
+                MDNavigationItemLabel:
+                    text: 'Estudiantes'
+
+            MDNavigationItem:
+                MDNavigationItemIcon:
+                    icon: 'book-open-variant'
+                MDNavigationItemLabel:
+                    text: 'Materias'
+
+            MDNavigationItem:
+                MDNavigationItemIcon:
+                    icon: 'account-circle'
+                MDNavigationItemLabel:
+                    text: 'Perfil'

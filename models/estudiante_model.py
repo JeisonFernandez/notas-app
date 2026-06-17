@@ -12,7 +12,7 @@ class EstudianteModel:
     def listar_todos(self):
         self.db.conectar()
         sql = """
-          SELECT id, cedula, nombres, apellidos, pnf, trayecto, seccion 
+          SELECT id, cedula, nombres, apellidos, pnf, trayecto 
           FROM estudiantes
           ORDER BY apellidos, nombres
         """
@@ -24,7 +24,7 @@ class EstudianteModel:
         self.db.conectar()
         like = f"%{texto}%"
         sql = """
-            SELECT id, cedula, nombres, apellidos, pnf, trayecto, seccion 
+            SELECT id, cedula, nombres, apellidos, pnf, trayecto 
             FROM estudiantes
             WHERE cedula LIKE ? OR nombres LIKE ? OR apellidos LIKE ?
             ORDER BY apellidos, nombres
@@ -33,13 +33,13 @@ class EstudianteModel:
         self.db.cerrar()
         return estudiantes
     
-    def crear(self, cedula, nombres, apellidos, pnf, trayecto, seccion):
+    def crear(self, cedula, nombres, apellidos, pnf, trayecto):
         self.db.conectar()
         sql = """
-            INSERT INTO estudiantes (cedula, nombres, apellidos, pnf, trayecto, seccion)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO estudiantes (cedula, nombres, apellidos, pnf, trayecto)
+            VALUES (?, ?, ?, ?, ?)
         """
-        nuevo_id = self.db.ejecutar(sql, (cedula, nombres, apellidos, pnf, trayecto, seccion))
+        nuevo_id = self.db.ejecutar(sql, (cedula, nombres, apellidos, pnf, trayecto))
         self.db.cerrar()
         return nuevo_id
     
@@ -47,7 +47,7 @@ class EstudianteModel:
         
         self.db.conectar()
         sql = """
-            SELECT id, cedula, nombres, apellidos, pnf, trayecto, seccion
+            SELECT id, cedula, nombres, apellidos, pnf, trayecto
             FROM estudiantes
             WHERE id = ?
         """
@@ -59,7 +59,7 @@ class EstudianteModel:
         
         self.db.conectar()
         sql = """
-            SELECT id, cedula, nombres, apellidos, pnf, trayecto, seccion 
+            SELECT id, cedula, nombres, apellidos, pnf, trayecto 
             FROM estudiantes 
             WHERE cedula = ?
         """

@@ -1,11 +1,6 @@
 #:kivy 2.3.0
 
-# Regla personalizada para los items del menú desplegable
-<MenuListItem>:
-    MDListItemHeadlineText:
-        text: root.text
-
-<NotasTab>:
+<MateriasTab>:
     md_bg_color: self.theme_cls.backgroundColor
 
     MDBoxLayout:
@@ -16,7 +11,7 @@
             type: "small"
             
             MDTopAppBarTitle:
-                text: "Gestión de Notas"
+                text: "Mis Materias"
                 
             MDTopAppBarTrailingButtonContainer:
                 MDActionTopAppBarButton:
@@ -24,9 +19,9 @@
                     on_release: root.abrir_dialogo_agregar()
                 MDActionTopAppBarButton:
                     icon: "reload"
-                    on_release: root.cargar_notas_seguro()
+                    on_release: root.cargar_materias()
 
-        # 2. ÁREA DE MENSAJES (Oculta si no hay errores)
+        # 2. ÁREA DE MENSAJES
         MDLabel:
             id: lbl_mensaje
             text: ""
@@ -38,9 +33,9 @@
             theme_text_color: "Custom"
             text_color: (1, 0, 0, 1)
 
-        # 3. LISTA DE NOTAS (Con su ID correcto para evitar el KeyError)
+        # 3. LISTA DE MATERIAS
         MDScrollView:
             MDList:
-                id: lista_notas
+                id: lista_materias
                 padding: dp(10)
                 spacing: dp(10)

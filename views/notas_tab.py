@@ -1,107 +1,95 @@
-# ============================================================
-# 1. IMPORTACIONES
-# ============================================================
+import os
+from kivy.lang import Builder
+from kivy.metrics import dp
+from kivy.properties import StringProperty
+from kivy.clock import Clock
 
-from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
-from kivymd.uix.datatables import MDDataTable
+from kivymd.uix.list import MDListItem, MDListItemHeadlineText, MDListItemSupportingText, MDListItemTertiaryText, MDListItemTrailingIcon
 from kivymd.uix.dialog import MDDialog, MDDialogHeadlineText, MDDialogContentContainer, MDDialogButtonContainer
 from kivymd.uix.button import MDButton, MDButtonText
 from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.gridlayout import MDGridLayout
 from kivymd.uix.textfield import MDTextField, MDTextFieldHintText
 from kivymd.uix.menu import MDDropdownMenu
-from kivymd.uix.list import MDListItem
 from kivymd.uix.label import MDLabel
-from kivy.metrics import dp
 
 from controllers.nota_controller import NotaController
 from controllers.estudiante_controller import EstudianteController
 from controllers.materia_controller import MateriaController
 
+# Cargar el archivo .kv asociado explícitamente
+kv_path = os.path.join(os.path.dirname(__file__), 'notas_tab.kv')
+Builder.load_file(kv_path)
 
-# ============================================================
-# 2. CLASE PRINCIPAL
-# ============================================================
+class MenuListItem(MDListItem):
+    text = StringProperty()
 
 class NotasTab(MDScreen):
-    """
-    Pestaña de Notas - Muestra una tabla con todas las notas registradas.
-    """
-    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         
-        # Controladores
         self.nota_controller = NotaController()
         self.estudiante_controller = EstudianteController()
         self.materia_controller = MateriaController()
         
-        # Variables de selección
+        self.dialog = None
+        self.dialog_detalle = None
+        self.menu_estudiantes = None
+        self.menu_materias = None
         self.estudiante_id = None
         self.materia_id = None
         
-        # Diálogo y menús (creados UNA VEZ en __init__)
-        self.dialog = None
-        self.menu_estudiantes = None
-        self.menu_materias = None
-        
-        # Cargar datos iniciales
-        self.cargar_notas()
-    
     def on_enter(self, *args):
-        """
-        Se ejecuta cada vez que la pestaña es mostrada.
-        Recarga automática de datos.
-        """
-        self.cargar_notas()
-    
-    # ============================================================
-    # 3. CARGA DE DATOS
-    # ============================================================
-    
-    def cargar_notas(self):
-        """
-        Carga las notas desde el controlador y actualiza la tabla.
-        """
-        if not hasattr(self.ids, 'tabla_notas'):
+        Clock.schedule_once(lambda dt: self.cargar_notas_seguro(), 0.1)
+
+    # ==========================================
+    # LÓGICA DE LISTADO
+    # ==========================================
+    def cargar_notas_seguro(self):
+        if 'lista_notas' not in self.ids:
+            Clock.schedule_once(lambda dt: self.cargar_notas_seguro(), 0.2)
             return
-        
+
+        self.ids.lista_notas.clear_widgets()
         notas = self.nota_controller.obtener_todas()
         
         if not notas:
-            self.ids.tabla_notas.row_data = []
-            self.ids.lbl_mensaje.text = "No hay notas registradas"
+            self.mostrar_mensaje("No hay notas registradas.", (0.5, 0.5, 0.5, 1))
             return
+            
+        self.mostrar_mensaje("", (0,0,0,0))
         
-        filas = []
-        for i, nota in enumerate(notas):
-            filas.append((
-                str(i + 1),
-                nota[0],
-                nota[1],
-                f"{nota[2]:.2f}",
-                nota[3],
-                nota[4]
-            ))
-        
-        self.ids.tabla_notas.row_data = filas
-        self.ids.lbl_mensaje.text = ""
-    
-    # ============================================================
-    # 4. DIÁLOGO DE AGREGAR NOTAS
-    # ============================================================
-    
+        for nota in notas:
+            promedio = float(nota[3]) if nota[3] else 0.0
+            
+            # Quitamos el MDListItemTrailingIcon para evitar conflictos de clics
+            item = MDListItem(
+                MDListItemHeadlineText(text=f"{nota[1]} - {nota[2]}"),
+                MDListItemSupportingText(text=f"Promedio: {promedio:.2f} | Estado: {nota[4]}"),
+                MDListItemTertiaryText(text=f"Fecha: {nota[5]}"),
+                on_release=lambda x, n=nota: self.ver_detalle(n)
+            )
+            self.ids.lista_notas.add_widget(item)
+
+    def mostrar_mensaje(self, texto, color):
+        if 'lbl_mensaje' in self.ids:
+            lbl = self.ids.lbl_mensaje
+            lbl.text = texto
+            lbl.text_color = color
+            lbl.height = dp(30) if texto else dp(0)
+
+    # ==========================================
+    # LÓGICA DEL DIÁLOGO (Agregar Nota)
+    # ==========================================
     def abrir_dialogo_agregar(self):
-        """
-        Abre el diálogo para agregar una nueva nota.
-        """
         self.estudiante_id = None
         self.materia_id = None
         
         contenido = self._crear_contenido_dialogo()
         
         self.dialog = MDDialog(
-            MDDialogHeadlineText(text="Agregar Nota"),
+            MDDialogHeadlineText(text="Registrar Nueva Nota"),
             MDDialogContentContainer(contenido),
             MDDialogButtonContainer(
                 MDButton(
@@ -112,233 +100,233 @@ class NotasTab(MDScreen):
                 MDButton(
                     MDButtonText(text="GUARDAR"),
                     style="elevated",
-                    theme_bg_color="Custom",
-                    md_bg_color=(0.1, 0.5, 0.8, 1),
-                    on_release=self.guardar_notas_dialogo
-                ),
+                    on_release=self.guardar_nota
+                )
             )
         )
         self.dialog.open()
-    
+
     def _crear_contenido_dialogo(self):
-        """
-        Crea el contenido del diálogo.
-        """
-        contenido = MDBoxLayout(
+        layout = MDBoxLayout(
             orientation='vertical',
-            spacing=dp(16),
-            padding=dp(16),
-            size_hint_y=None,
-            height=dp(420)
+            spacing=dp(15),
+            padding=dp(10),
+            adaptive_height=True
         )
         
-        # Botón estudiante
-        self.btn_estudiante = MDButton(
-            MDButtonText(text="Seleccionar Estudiante"),
-            style="outlined",
-            size_hint=(1, None),
-            height=dp(48)
+        self.btn_est = MDButton(
+            MDButtonText(text="Seleccionar Estudiante", pos_hint={"center_x": 0.5, "center_y": 0.5}), 
+            style="outlined", 
+            size_hint_x=1
         )
-        self.btn_estudiante.bind(on_release=self.abrir_menu_estudiantes)
+        self.btn_est.bind(on_release=self.mostrar_menu_estudiantes)
         
-        # Botón materia
-        self.btn_materia = MDButton(
-            MDButtonText(text="Seleccionar Materia"),
-            style="outlined",
-            size_hint=(1, None),
-            height=dp(48)
+        self.btn_mat = MDButton(
+            MDButtonText(text="Seleccionar Materia", pos_hint={"center_x": 0.5, "center_y": 0.5}), 
+            style="outlined", 
+            size_hint_x=1
         )
-        self.btn_materia.bind(on_release=self.abrir_menu_materias)
+        self.btn_mat.bind(on_release=self.mostrar_menu_materias)
         
-        # Campos de notas
-        self.campo_nota1 = MDTextField(
-            MDTextFieldHintText(text="Nota 1 (0-20)"),
-            mode="outlined"
-        )
-        self.campo_nota2 = MDTextField(
-            MDTextFieldHintText(text="Nota 2 (0-20)"),
-            mode="outlined"
-        )
-        self.campo_nota3 = MDTextField(
-            MDTextFieldHintText(text="Nota 3 (0-20)"),
-            mode="outlined"
-        )
-        self.campo_nota4 = MDTextField(
-            MDTextFieldHintText(text="Nota 4 (0-20)"),
-            mode="outlined"
-        )
-        self.campo_nota5 = MDTextField(
-            MDTextFieldHintText(text="Nota 5 (0-20)"),
-            mode="outlined"
+        self.campos_notas = []
+        box_notas = MDGridLayout(
+            cols=3, 
+            spacing=dp(10), 
+            adaptive_height=True
         )
         
-        # Mensaje de error (usando Custom + text_color)
-        self.lbl_error_dialogo = MDLabel(
-            text="",
-            halign="center",
-            theme_text_color="Custom",
-            text_color=(0.8, 0, 0, 1),  # Rojo fijo
-            font_style="Body1",
-            size_hint_y=None,
-            height=dp(30)
+        for i in range(5):
+            tf = MDTextField(MDTextFieldHintText(text=f"N{i+1}"), mode="outlined")
+            self.campos_notas.append(tf)
+            box_notas.add_widget(tf)
+            
+        self.lbl_error_dlg = MDLabel(
+            text="", 
+            theme_text_color="Custom", 
+            text_color=(1,0,0,1), 
+            size_hint_y=None, 
+            height=dp(20),
+            font_style="Body",
+            role="small"
         )
         
-        # Ensamblar
-        contenido.add_widget(self.btn_estudiante)
-        contenido.add_widget(self.btn_materia)
-        contenido.add_widget(self.campo_nota1)
-        contenido.add_widget(self.campo_nota2)
-        contenido.add_widget(self.campo_nota3)
-        contenido.add_widget(self.campo_nota4)
-        contenido.add_widget(self.campo_nota5)
-        contenido.add_widget(self.lbl_error_dialogo)
+        layout.add_widget(self.btn_est)
+        layout.add_widget(self.btn_mat)
+        layout.add_widget(box_notas)
+        layout.add_widget(self.lbl_error_dlg)
         
-        return contenido
-    
-    # ============================================================
-    # 5. MENÚS DESPLEGABLES
-    # ============================================================
-    
-    def crear_menu_estudiantes(self):
+        return layout
+
+    # ==========================================
+    # LÓGICA DE MENÚS DESPLEGABLES
+    # ==========================================
+    def mostrar_menu_estudiantes(self, instancia_boton):
         estudiantes = self.estudiante_controller.listar_todos()
-        if not estudiantes:
-            return None
-        
-        menu_items = []
-        for est in estudiantes:
-            texto = f"{est[1]} - {est[2]} {est[3]}"
-            menu_items.append({
-                "text": texto,
-                "viewclass": "MDListItem",  # ← KivyMD 2.0
+        menu_items = [
+            {
+                "text": f"{est[1]} - {est[2]} {est[3]}",
+                "viewclass": "MenuListItem",
                 "on_release": lambda x=est: self.seleccionar_estudiante(x)
-            })
-        
-        return MDDropdownMenu(
-            items=menu_items,
-            width_mult=4,
-        )
-    
-    def crear_menu_materias(self):
-        app = MDApp.get_running_app()
-        profesor_id = app.profesor_actual['id'] if hasattr(app, 'profesor_actual') else None
-        
-        if not profesor_id:
-            return None
-        
-        materias = self.materia_controller.listar_por_profesor(profesor_id)
-        if not materias:
-            return None
-        
-        menu_items = []
-        for mat in materias:
-            menu_items.append({
-                "text": mat[1],
-                "viewclass": "MDListItem",  # ← KivyMD 2.0
-                "on_release": lambda x=mat: self.seleccionar_materia(x)
-            })
-        
-        return MDDropdownMenu(
-            items=menu_items,
-            width_mult=4,
-        )
-    
-    def abrir_menu_estudiantes(self, instance):
-        if not self.menu_estudiantes:
-            self.menu_estudiantes = self.crear_menu_estudiantes()
-        
-        if self.menu_estudiantes:
-            self.menu_estudiantes.caller = instance
-            self.menu_estudiantes.open()
-    
-    def abrir_menu_materias(self, instance):
-        if not self.menu_materias:
-            self.menu_materias = self.crear_menu_materias()
-        
-        if self.menu_materias:
-            self.menu_materias.caller = instance
-            self.menu_materias.open()
-    
+            } for est in estudiantes
+        ]
+        self.menu_estudiantes = MDDropdownMenu(caller=instancia_boton, items=menu_items)
+        self.menu_estudiantes.open()
+
     def seleccionar_estudiante(self, estudiante):
         self.estudiante_id = estudiante[0]
-        for child in self.btn_estudiante.children:
-            if isinstance(child, MDButtonText):
-                child.text = f"{estudiante[1]} - {estudiante[2]} {estudiante[3]}"
-                break
-        
-        if self.menu_estudiantes:
-            self.menu_estudiantes.dismiss()
-        self.lbl_error_dialogo.text = ""
-    
+        self.btn_est.children[0].text = f"{estudiante[1]} - {estudiante[2]}"
+        self.menu_estudiantes.dismiss()
+
+    def mostrar_menu_materias(self, instancia_boton):
+        materias = self.materia_controller.listar_por_profesor(profesor_id=1) 
+        menu_items = [
+            {
+                "text": mat[1],
+                "viewclass": "MenuListItem",
+                "on_release": lambda x=mat: self.seleccionar_materia(x)
+            } for mat in materias
+        ]
+        self.menu_materias = MDDropdownMenu(caller=instancia_boton, items=menu_items)
+        self.menu_materias.open()
+
     def seleccionar_materia(self, materia):
         self.materia_id = materia[0]
-        for child in self.btn_materia.children:
-            if isinstance(child, MDButtonText):
-                child.text = materia[1]
-                break
-        
-        if self.menu_materias:
-            self.menu_materias.dismiss()
-        self.lbl_error_dialogo.text = ""
-    
-    # ============================================================
-    # 6. GUARDAR NOTAS
-    # ============================================================
-    
-    def guardar_notas_dialogo(self, instance):
+        self.btn_mat.children[0].text = materia[1]
+        self.menu_materias.dismiss()
+
+    # ==========================================
+    # CRUD Y DETALLES
+    # ==========================================
+    def guardar_nota(self, *args):
         if not self.estudiante_id or not self.materia_id:
-            self.lbl_error_dialogo.text = "Selecciona un estudiante y una materia"
+            self.lbl_error_dlg.text = "Seleccione estudiante y materia"
             return
-        
+            
+        notas_valores = []
         try:
-            n1 = float(self.campo_nota1.text) if self.campo_nota1.text else 0
-            n2 = float(self.campo_nota2.text) if self.campo_nota2.text else 0
-            n3 = float(self.campo_nota3.text) if self.campo_nota3.text else 0
-            n4 = float(self.campo_nota4.text) if self.campo_nota4.text else 0
-            n5 = float(self.campo_nota5.text) if self.campo_nota5.text else 0
+            for campo in self.campos_notas:
+                if not campo.text.strip():
+                    raise ValueError
+                val = float(campo.text)
+                if val < 0 or val > 20: 
+                    raise ValueError
+                notas_valores.append(val)
         except ValueError:
-            self.lbl_error_dialogo.text = "Ingresa notas válidas (números)"
+            self.lbl_error_dlg.text = "Debe ingresar 5 notas validas (0 a 20)"
             return
-        
-        for nota in [n1, n2, n3, n4, n5]:
-            if nota < 0 or nota > 20:
-                self.lbl_error_dialogo.text = "Las notas deben estar entre 0 y 20"
-                return
-        
+            
         resultado = self.nota_controller.guardar_notas(
-            self.estudiante_id,
-            self.materia_id,
-            n1, n2, n3, n4, n5
+            self.estudiante_id, self.materia_id, *notas_valores
         )
         
         if resultado['success']:
             self.dialog.dismiss()
-            self.cargar_notas()
-            self.ids.lbl_mensaje.text = f"Notas guardadas: Promedio {resultado['promedio']:.2f} - {resultado['estado']}"
-            # CAMBIO: Usar Custom en lugar de Primary
-            self.ids.lbl_mensaje.theme_text_color = "Custom"
-            self.ids.lbl_mensaje.text_color = (0, 0.7, 0, 1)  # Verde éxito
+            self.cargar_notas_seguro()
+            self.mostrar_mensaje(f"Guardado exitosamente.", (0, 0.7, 0, 1))
         else:
-            self.lbl_error_dialogo.text = f"❌ {resultado['message']}"
-    
-    # ============================================================
-    # 7. EVENTOS DE TABLA
-    # ============================================================
-    
-    def on_row_press(self, instance_table, instance_row):
-        """
-        Maneja el clic en una fila de la tabla.
-        """
-        dialogo_detalle = MDDialog(
-            MDDialogHeadlineText(text="Detalle de Nota"),
-            MDDialogContentContainer(
-                MDLabel(text="No hay detalles disponibles aún.")
-            ),
+            self.lbl_error_dlg.text = resultado['message']
+
+    def eliminar_nota(self, nota_id):
+        resultado = self.nota_controller.eliminar_nota(nota_id)
+        if resultado.get('success'):
+            self.cargar_notas_seguro()
+            self.mostrar_mensaje("Registro eliminado exitosamente.", (0, 0.7, 0, 1))
+        else:
+            self.mostrar_mensaje("Error al eliminar el registro.", (1, 0, 0, 1))
+
+    def ver_detalle(self, nota):
+        promedio = float(nota[3]) if nota[3] else 0.0
+        
+        contenido = MDBoxLayout(
+            orientation="vertical", 
+            adaptive_height=True, 
+            spacing=dp(15),
+            padding=dp(10)
+        )
+        
+        info_fija = MDBoxLayout(orientation="vertical", adaptive_height=True, spacing=dp(5))
+        info_fija.add_widget(MDLabel(text=f"Estudiante: {nota[1]}", font_style="Title", role="medium", adaptive_height=True))
+        info_fija.add_widget(MDLabel(text=f"Materia: {nota[2]}", font_style="Body", role="large", adaptive_height=True))
+        info_fija.add_widget(MDLabel(text=f"Fecha: {nota[5]}", font_style="Body", role="small", adaptive_height=True, theme_text_color="Custom", text_color=(0.5, 0.5, 0.5, 1)))
+        contenido.add_widget(info_fija)
+        
+        box_notas = MDGridLayout(cols=5, spacing=dp(10), adaptive_height=True)
+        self.campos_edicion_notas = []
+        for i in range(5):
+            tf = MDTextField(
+                MDTextFieldHintText(text=f"N{i+1}"), 
+                mode="outlined",
+                text=str(nota[6+i]) if nota[6+i] is not None else "0"
+            )
+            self.campos_edicion_notas.append(tf)
+            box_notas.add_widget(tf)
+            
+        contenido.add_widget(box_notas)
+        
+        info_resultados = MDBoxLayout(orientation="vertical", adaptive_height=True, spacing=dp(5))
+        info_resultados.add_widget(MDLabel(text=f"Promedio Actual: {promedio:.2f}", font_style="Title", role="small", adaptive_height=True))
+        info_resultados.add_widget(MDLabel(text=f"Estado Actual: {nota[4]}", font_style="Title", role="small", adaptive_height=True))
+        
+        self.lbl_error_edicion = MDLabel(
+            text="", 
+            theme_text_color="Custom", 
+            text_color=(1,0,0,1), 
+            size_hint_y=None, 
+            height=dp(20),
+            font_style="Body",
+            role="small"
+        )
+        info_resultados.add_widget(self.lbl_error_edicion)
+        contenido.add_widget(info_resultados)
+        
+        self.dialog_detalle = MDDialog(
+            MDDialogHeadlineText(text="Detalle y Edición de Notas"),
+            MDDialogContentContainer(contenido),
             MDDialogButtonContainer(
                 MDButton(
                     MDButtonText(text="CERRAR"),
                     style="text",
-                    on_release=lambda x: dialogo_detalle.dismiss()
+                    on_release=lambda x: self.dialog_detalle.dismiss()
                 ),
+                MDButton(
+                    # Botón de eliminar directo en el modal (rojo para destacar)
+                    MDButtonText(text="ELIMINAR", theme_text_color="Custom", text_color=(0.8, 0.1, 0.1, 1)),
+                    style="text",
+                    on_release=lambda x, n_id=nota[0]: self.ejecutar_eliminar_desde_dialogo(n_id)
+                ),
+                MDButton(
+                    MDButtonText(text="GUARDAR CAMBIOS"),
+                    style="elevated",
+                    on_release=lambda x, n_id=nota[0]: self.guardar_edicion_notas(n_id)
+                )
             )
         )
-        dialogo_detalle.open()
+        self.dialog_detalle.open()
+
+    def ejecutar_eliminar_desde_dialogo(self, nota_id):
+        """Cierra el diálogo y luego elimina la nota"""
+        self.dialog_detalle.dismiss()
+        self.eliminar_nota(nota_id)
+
+    def guardar_edicion_notas(self, nota_id):
+        notas_valores = []
+        try:
+            for campo in self.campos_edicion_notas:
+                if not campo.text.strip():
+                    raise ValueError
+                val = float(campo.text)
+                if val < 0 or val > 20: 
+                    raise ValueError
+                notas_valores.append(val)
+        except ValueError:
+            self.lbl_error_edicion.text = "Debe ingresar 5 notas validas (0 a 20)"
+            return
+            
+        resultado = self.nota_controller.actualizar_notas(nota_id, *notas_valores)
+        
+        if resultado['success']:
+            self.dialog_detalle.dismiss()
+            self.cargar_notas_seguro()
+            self.mostrar_mensaje(f"Actualizado. Nuevo Promedio: {resultado['promedio']:.2f}", (0, 0.7, 0, 1))
+        else:
+            self.lbl_error_edicion.text = resultado['message']

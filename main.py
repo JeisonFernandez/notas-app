@@ -24,17 +24,16 @@ class ControlNotasApp(MDApp):
         return self.sm
 
     def cambiar_a_main(self, profesor_actual):
-        """
-        Esta función se llama desde LoginScreen cuando el login es exitoso.
-        """
-        # 1. Creamos la pantalla principal pasándole los datos del profesor
-        self.main_screen = MainScreen(name='main', profesor_actual=profesor_actual)
-        
-        # 2. Le conectamos la función de cerrar sesión real
-        self.main_screen.cerrar_sesion_real = self.cerrar_sesion
-        
-        # 3. Agregamos la pantalla al manager y cambiamos a ella
-        self.sm.add_widget(self.main_screen)
+        # Solo creamos la pantalla si no existe previamente
+        if not self.sm.has_screen('main'):
+            self.main_screen = MainScreen(name='main', profesor_actual=profesor_actual)
+            self.main_screen.cerrar_sesion_real = self.cerrar_sesion
+            self.sm.add_widget(self.main_screen)
+        else:
+            # Si ya existe (por ejemplo si cerró sesión y volvió a entrar), solo actualizamos el profesor
+            self.main_screen = self.sm.get_screen('main')
+            self.main_screen.profesor_actual = profesor_actual
+            
         self.sm.current = 'main'
 
     def cerrar_sesion(self):

@@ -17,9 +17,9 @@ class EstudianteController:
             return self.modelo.listar_todos()
         return self.modelo.buscar(texto)
     
-    def crear(self, cedula, nombres, apellidos, pnf, trayecto, seccion):
+    def crear(self, cedula, nombres, apellidos, pnf, trayecto):
         # Validar campos vacíos
-        if not cedula or not nombres or not apellidos or not pnf or not trayecto or not seccion:
+        if not cedula or not nombres or not apellidos or not pnf or not trayecto:
             return {'success': False, 'message': 'Todos los campos son obligatorios', 'id': None}
         
         # Validar cédula
@@ -40,7 +40,7 @@ class EstudianteController:
             return {'success': False, 'message': f'Ya existe un estudiante con cédula {cedula}', 'id': None}
         
         # Crear estudiante
-        nuevo_id = self.modelo.crear(cedula, nombres, apellidos, pnf, trayecto, seccion)
+        nuevo_id = self.modelo.crear(cedula, nombres, apellidos, pnf, trayecto)
         
         if nuevo_id:
             return {'success': True, 'message': 'Estudiante creado exitosamente', 'id': nuevo_id}

@@ -10,6 +10,45 @@ class NotaModel:
         self.db = DatabaseManager()
     
 
+    def obtener_todas(self):
+        self.db.conectar()
+        # Se agregaron n.nota1 hasta n.nota5 a la consulta
+        sql = """
+            SELECT 
+                n.id, 
+                e.nombres || ' ' || e.apellidos AS estudiante,
+                m.nombre AS materia,
+                n.promedio, n.estado, n.fecha_registro,
+                n.nota1, n.nota2, n.nota3, n.nota4, n.nota5
+            FROM notas n
+            JOIN inscripciones i ON n.inscripcion_id = i.id
+            JOIN estudiantes e ON i.estudiante_id = e.id
+            JOIN materias m ON i.materia_id = m.id
+            ORDER BY n.fecha_registro DESC
+        """
+        notas = self.db.consultar(sql)
+        self.db.cerrar()
+        return notas
+
+    def actualizar_notas(self, nota_id, nota1, nota2, nota3, nota4, nota5, promedio, estado):
+        self.db.conectar()
+        sql = """
+            UPDATE notas 
+            SET nota1 = ?, nota2 = ?, nota3 = ?, nota4 = ?, nota5 = ?, promedio = ?, estado = ?
+            WHERE id = ?
+        """
+        resultado = self.db.ejecutar(sql, (nota1, nota2, nota3, nota4, nota5, promedio, estado, nota_id))
+        self.db.cerrar()
+        return resultado is not None
+    
+    def eliminar_nota(self, nota_id):
+        self.db.conectar()
+        sql = "DELETE FROM notas WHERE id = ?"
+        resultado = self.db.ejecutar(sql, (nota_id,))
+        self.db.cerrar()
+        return resultado
+
+
     # MÉTODOS PARA INSCRIPCIONES
     def obtener_o_crear_inscripcion(self, estudiante_id, materia_id, periodo="2026-1"):
         """
