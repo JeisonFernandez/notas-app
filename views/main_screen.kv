@@ -1,0 +1,39 @@
+<MainScreen>:
+        MDBoxLayout:
+        orientation: 'vertical'
+
+        MDTopAppBar:
+            title: "Control de Notas"
+            type: "small"
+            MDTopAppBarLeadingButtonContainer:
+                MDActionTopAppBarButton:
+                    icon: "menu"
+            MDTopAppBarTitle:
+                text: "Control de Notas"
+            MDTopAppBarTrailingButtonContainer:
+                MDActionTopAppBarButton:
+                    icon: "logout"
+                    on_release: root.cerrar_sesion()
+
+        MDTabsPrimary:
+            MDTabsItem:
+                MDTabsItemIcon:
+                    icon: "notebook"
+                MDTabsItemText:
+                    text: "Notas"
+                on_release: root.cambiar_pestana("Notas")
+            MDTabsItem:
+                MDTabsItemIcon:
+                    icon: "account-group"
+                MDTabsItemText:
+                    text: "Estudiantes"
+                on_release: root.cambiar_pestana("Estudiantes")
+            MDTabsItem:
+                MDTabsItemIcon:
+                    icon: "book-open-variant"
+                MDTabsItemText:
+                    text: "Materias"
+                on_release: root.cambiar_pestana("Materias")
+
+        ScreenManager:
+            id: sm_contenido

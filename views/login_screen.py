@@ -72,7 +72,8 @@ class LoginScreen(MDScreen):
             MDButtonText(text='Iniciar Sesión'),
             style="elevated",
             theme_bg_color="Custom",
-            md_bg_color=(0.1, 0.5, 0.8, 1)
+            md_bg_color=(0.1, 0.5, 0.8, 1),
+            pos_hint={"center_x": 0.5, "center_y": 0.5}
         )
         self.boton_login.bind(on_release=self.on_login)
         
@@ -129,5 +130,5 @@ class LoginScreen(MDScreen):
         Limpia los campos de texto
         """
         self.campo_usuario.text = ''
-        self.campo_password.text = '' # BUG CRÍTICO SOLUCIONADO
+        self.campo_password.text = '' 
         self.mensaje.text = ''

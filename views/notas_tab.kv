@@ -1,0 +1,53 @@
+<NotasTab>:
+    MDBoxLayout:
+        orientation: 'vertical'
+        padding: dp(16)
+        spacing: dp(16)
+
+        # 1. BARRA SUPERIOR (TopAppBar) - SINTAXIS CORRECTA KIVYMD 2.0
+        MDTopAppBar:
+            type: "small"
+            
+            MDTopAppBarLeadingButtonContainer:
+                MDActionTopAppBarButton:
+                    icon: "arrow-left"
+                    on_release: root.volver_atras()
+            
+            # EL TÍTULO AHORA ES UN WIDGET
+            MDTopAppBarTitle:
+                text: "Registro de Notas"
+                
+            MDTopAppBarTrailingButtonContainer:
+                MDActionTopAppBarButton:
+                    icon: "plus"
+                    on_release: root.abrir_dialogo_agregar()
+
+        # 2. CONTENEDOR PRINCIPAL
+        MDBoxLayout:
+            orientation: 'vertical'
+            spacing: dp(8)
+
+            # 2.1 Label para mensajes
+            MDLabel:
+                id: lbl_mensaje
+                text: ""
+                halign: "center"
+                font_style: "BodyMedium"  # <-- ACTUALIZADO A MATERIAL DESIGN 3
+                size_hint_y: None
+                height: dp(30)
+                theme_text_color: "Custom"
+                text_color: (0, 0, 0, 1)
+
+            # 2.2 Tabla de notas 
+            # (ADVERTENCIA: Si KivyMD 2.0 lanza error al importar, deberás reemplazar esto)
+            MDDataTable:
+                id: tabla_notas
+                size_hint_y: 1
+                use_pagination: True
+                rows_num: 10
+                
+                # En archivos .kv, es más seguro declarar listas de esta forma:
+                column_data: [("#", dp(30)), ("Estudiante", dp(120)), ("Materia", dp(120)), ("Promedio", dp(80)), ("Estado", dp(80)), ("Fecha", dp(100))]
+                row_data: []
+                
+                on_row_press: root.on_row_press(*args)
