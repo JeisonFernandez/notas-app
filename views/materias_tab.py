@@ -48,10 +48,6 @@ class MateriasTab(MDScreen):
             # mat = (id, nombre, profesor_id)
             item = MDListItem(
                 MDListItemHeadlineText(text=mat[1]),
-                MDListItemTrailingIcon(
-                    icon="delete",
-                    on_release=lambda x, materia_id=mat[0]: self.eliminar_materia(materia_id)
-                )
             )
             self.ids.lista_materias.add_widget(item)
 

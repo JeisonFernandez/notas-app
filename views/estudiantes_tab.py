@@ -64,10 +64,6 @@ class EstudiantesTab(MDScreen):
             item = MDListItem(
                 MDListItemHeadlineText(text=f"{est[2]} {est[3]}"),
                 MDListItemSupportingText(text=f"C.I: {est[1]}"),
-                MDListItemTrailingIcon(
-                    icon="delete",
-                    on_release=lambda x, estudiante_id=est[0]: self.eliminar_estudiante(estudiante_id)
-                )
             )
             self.ids.lista_estudiantes.add_widget(item)
 

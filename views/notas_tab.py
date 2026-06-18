@@ -29,6 +29,9 @@ class NotasTab(MDScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         
+        # Color fijo para evitar el parpadeo de fondo al cambiar de tab
+        self.md_bg_color = (0.08, 0.08, 0.08, 1)
+
         self.nota_controller = NotaController()
         self.estudiante_controller = EstudianteController()
         self.materia_controller = MateriaController()
@@ -235,8 +238,10 @@ class NotasTab(MDScreen):
             self.mostrar_mensaje("Error al eliminar el registro.", (1, 0, 0, 1))
 
     def ver_detalle(self, nota):
+        # nota = (id, estudiante, materia, promedio, estado, fecha, n1, n2, n3, n4, n5)
         promedio = float(nota[3]) if nota[3] else 0.0
         
+        # 1. Contenedor principal con padding y spacing generoso
         contenido = MDBoxLayout(
             orientation="vertical", 
             adaptive_height=True, 
@@ -244,13 +249,23 @@ class NotasTab(MDScreen):
             padding=dp(10)
         )
         
-        info_fija = MDBoxLayout(orientation="vertical", adaptive_height=True, spacing=dp(5))
-        info_fija.add_widget(MDLabel(text=f"Estudiante: {nota[1]}", font_style="Title", role="medium", adaptive_height=True))
-        info_fija.add_widget(MDLabel(text=f"Materia: {nota[2]}", font_style="Body", role="large", adaptive_height=True))
-        info_fija.add_widget(MDLabel(text=f"Fecha: {nota[5]}", font_style="Body", role="small", adaptive_height=True, theme_text_color="Custom", text_color=(0.5, 0.5, 0.5, 1)))
-        contenido.add_widget(info_fija)
+        # Helper para etiquetas limpias
+        def crear_label(texto, estilo="Body", rol="medium"):
+            return MDLabel(
+                text=texto, 
+                font_style=estilo, 
+                role=rol, 
+                adaptive_height=True,
+                shorten=True,
+                shorten_from='right'
+            )
+
+        # 2. Información del registro
+        contenido.add_widget(crear_label(f"Estudiante: {nota[1]}", "Title", "medium"))
+        contenido.add_widget(crear_label(f"Materia: {nota[2]}"))
         
-        box_notas = MDGridLayout(cols=5, spacing=dp(10), adaptive_height=True)
+        # 3. Cuadrícula de notas (Estructura 2-2-1)
+        box_notas = MDBoxLayout(orientation='vertical', spacing=dp(10), adaptive_height=True)
         self.campos_edicion_notas = []
         for i in range(5):
             tf = MDTextField(
@@ -259,47 +274,64 @@ class NotasTab(MDScreen):
                 text=str(nota[6+i]) if nota[6+i] is not None else "0"
             )
             self.campos_edicion_notas.append(tf)
-            box_notas.add_widget(tf)
-            
+
+        # Filas de edición
+        fila1 = MDGridLayout(cols=2, spacing=dp(10), adaptive_height=True)
+        fila1.add_widget(self.campos_edicion_notas[0]); fila1.add_widget(self.campos_edicion_notas[1])
+        
+        fila2 = MDGridLayout(cols=2, spacing=dp(10), adaptive_height=True)
+        fila2.add_widget(self.campos_edicion_notas[2]); fila2.add_widget(self.campos_edicion_notas[3])
+        
+        fila3 = MDBoxLayout(adaptive_height=True)
+        fila3.add_widget(self.campos_edicion_notas[4])
+
+        box_notas.add_widget(fila1); box_notas.add_widget(fila2); box_notas.add_widget(fila3)
         contenido.add_widget(box_notas)
         
+        # 4. Info de resultados
         info_resultados = MDBoxLayout(orientation="vertical", adaptive_height=True, spacing=dp(5))
-        info_resultados.add_widget(MDLabel(text=f"Promedio Actual: {promedio:.2f}", font_style="Title", role="small", adaptive_height=True))
-        info_resultados.add_widget(MDLabel(text=f"Estado Actual: {nota[4]}", font_style="Title", role="small", adaptive_height=True))
+        info_resultados.add_widget(crear_label(f"Promedio Actual: {promedio:.2f}", "Title", "small"))
+        info_resultados.add_widget(crear_label(f"Estado Actual: {nota[4]}", "Title", "small"))
         
         self.lbl_error_edicion = MDLabel(
-            text="", 
-            theme_text_color="Custom", 
-            text_color=(1,0,0,1), 
-            size_hint_y=None, 
-            height=dp(20),
-            font_style="Body",
-            role="small"
+            text="", theme_text_color="Custom", text_color=(1,0,0,1), 
+            size_hint_y=None, height=dp(20), font_style="Body", role="small"
         )
         info_resultados.add_widget(self.lbl_error_edicion)
         contenido.add_widget(info_resultados)
         
+        # 5. BOTONES DE ACCIÓN (Estructura personalizada para evitar desbordes)
+        box_botones_final = MDBoxLayout(orientation="vertical", spacing=dp(10), adaptive_height=True, padding=[0, dp(10), 0, 0])
+
+        fila_acciones = MDBoxLayout(orientation="horizontal", spacing=dp(10), size_hint_y=None, height=dp(50))
+        
+        btn_eliminar = MDButton(
+            MDButtonText(text="ELIMINAR", theme_text_color="Custom", text_color=(0.8, 0.1, 0.1, 1)),
+            style="text", size_hint_x=0.5,
+            on_release=lambda x, n_id=nota[0]: self.ejecutar_eliminar_desde_dialogo(n_id)
+        )
+        btn_guardar = MDButton(
+            MDButtonText(text="GUARDAR"),
+            style="elevated", size_hint_x=0.5,
+            on_release=lambda x, n_id=nota[0]: self.guardar_edicion_notas(n_id)
+        )
+        fila_acciones.add_widget(btn_eliminar)
+        fila_acciones.add_widget(btn_guardar)
+
+        btn_cerrar = MDButton(
+            MDButtonText(text="CERRAR"),
+            style="text", size_hint_x=1,
+            on_release=lambda x: self.dialog_detalle.dismiss()
+        )
+
+        box_botones_final.add_widget(fila_acciones)
+        box_botones_final.add_widget(btn_cerrar)
+        contenido.add_widget(box_botones_final)
+        
+        # 6. Lanzar diálogo
         self.dialog_detalle = MDDialog(
-            MDDialogHeadlineText(text="Detalle y Edición de Notas"),
+            MDDialogHeadlineText(text="Detalle y Edición"),
             MDDialogContentContainer(contenido),
-            MDDialogButtonContainer(
-                MDButton(
-                    MDButtonText(text="CERRAR"),
-                    style="text",
-                    on_release=lambda x: self.dialog_detalle.dismiss()
-                ),
-                MDButton(
-                    # Botón de eliminar directo en el modal (rojo para destacar)
-                    MDButtonText(text="ELIMINAR", theme_text_color="Custom", text_color=(0.8, 0.1, 0.1, 1)),
-                    style="text",
-                    on_release=lambda x, n_id=nota[0]: self.ejecutar_eliminar_desde_dialogo(n_id)
-                ),
-                MDButton(
-                    MDButtonText(text="GUARDAR CAMBIOS"),
-                    style="elevated",
-                    on_release=lambda x, n_id=nota[0]: self.guardar_edicion_notas(n_id)
-                )
-            )
         )
         self.dialog_detalle.open()
 
